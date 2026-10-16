@@ -1,0 +1,879 @@
+<!-- INDEX — a spaced-repetition flashcard box -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Noto+Sans+SC:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+#index-app {
+  --ink: #1c2430;
+  --ink-2: #232c3a;
+  --stock: #f4eedd;
+  --stock-line: #d8cfb2;
+  --brass: #ba8f52;
+  --brass-dark: #8c6b39;
+  --muted: #8b93a6;
+  --rule: rgba(255,255,255,0.12);
+  --red: #a23b32;
+  --amber: #b8862c;
+  --green: #5f8259;
+  --blue: #3e6e8e;
+  --text-on-stock: #2a2620;
+
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--ink);
+  color: #e8e6df;
+  border-radius: 14px;
+  padding: 0;
+  min-height: 640px;
+  max-width: 640px;
+  margin: 0 auto;
+  box-shadow: 0 1px 0 var(--rule) inset;
+  overflow: hidden;
+}
+
+#index-app * { box-sizing: border-box; }
+#index-app button { font-family: inherit; cursor: pointer; }
+#index-app button:focus-visible,
+#index-app input:focus-visible,
+#index-app textarea:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.ix-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 0 20px;
+}
+.ix-brand {
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.08em;
+  font-size: 13px;
+  color: var(--brass);
+  text-transform: uppercase;
+}
+.ix-brand span { color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 6px; }
+.ix-tabs { display: flex; gap: 4px; background: var(--ink-2); border-radius: 999px; padding: 3px; }
+.ix-tab {
+  border: none; background: transparent; color: var(--muted);
+  font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px;
+  transition: background .15s, color .15s;
+}
+.ix-tab.active { background: var(--brass); color: #1c1710; }
+
+.ix-view { display: none; padding: 18px 20px 24px 20px; }
+.ix-view.active { display: block; }
+
+/* stats drawer */
+.ix-drawer {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  margin: 16px 0 20px 0;
+}
+.ix-label {
+  background: var(--ink-2); border-radius: 8px; padding: 8px 6px; text-align: center;
+  border-top: 2px solid var(--brass-dark);
+}
+.ix-label .n { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #f1ede0; display: block; }
+.ix-label .t { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+/* study card */
+.ix-stage { display: flex; flex-direction: column; align-items: center; padding: 8px 0 4px 0; }
+.ix-progress { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+.ix-card-wrap { perspective: 1400px; width: 100%; max-width: 420px; height: 260px; }
+.ix-card {
+  position: relative; width: 100%; height: 100%; cursor: pointer;
+  transform-style: preserve-3d; transition: transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.ix-card.flipped { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) { .ix-card { transition: none; } }
+
+.ix-face {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  background: var(--stock); color: var(--text-on-stock);
+  border-radius: 4px 14px 4px 4px;
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+  box-shadow: 0 14px 30px rgba(0,0,0,.4), 0 1px 0 rgba(255,255,255,.4) inset;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 36px 30px;
+}
+.ix-face::before {
+  content: ''; position: absolute; top: 22px; left: 18px; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--stock-line) inset;
+}
+.ix-face::after {
+  content: ''; position: absolute; top: 46px; left: 0; right: 0; height: 1px; background: var(--stock-line);
+}
+.ix-face-back { transform: rotateY(180deg); }
+.ix-face-text {
+  font-family: 'Special Elite', monospace; font-size: 22px; line-height: 1.4;
+  max-height: 100%; overflow: auto;
+}
+.ix-hanzi { font-family: 'Noto Sans SC', sans-serif; font-weight: 600; font-size: 40px; line-height: 1.3; }
+.ix-pinyin { font-family: 'Special Elite', monospace; font-size: 22px; color: #6b6455; margin-top: 8px; }
+.ix-speak {
+  position: absolute; top: 14px; right: 26px; width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--stock-line); background: rgba(0,0,0,.04); color: var(--text-on-stock);
+  font-size: 15px; display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.ix-speak:hover { background: rgba(0,0,0,.08); }
+.ix-speak:active { transform: scale(0.94); }
+.ix-stamp {
+  position: absolute; bottom: 14px; right: 22px; font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .1em; color: var(--red); border: 2px solid var(--red);
+  padding: 2px 8px; border-radius: 3px; transform: rotate(-8deg); opacity: .75; text-transform: uppercase;
+}
+.ix-hint { margin-top: 12px; font-size: 12px; color: var(--muted); }
+
+.ix-grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 420px; margin-top: 18px; }
+.ix-grade {
+  border: none; border-radius: 8px; padding: 10px 6px; color: #fff; font-weight: 600; font-size: 13px;
+  display: flex; flex-direction: column; gap: 2px; align-items: center; opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+}
+.ix-grades.show .ix-grade { opacity: 1; pointer-events: auto; }
+.ix-grade small { font-family: 'IBM Plex Mono', monospace; font-weight: 400; font-size: 11px; opacity: .85; }
+.ix-grade.again { background: var(--red); }
+.ix-grade.hard { background: var(--amber); }
+.ix-grade.good { background: var(--green); }
+.ix-grade.easy { background: var(--blue); }
+
+.ix-empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+.ix-empty .big { font-family: 'Special Elite', monospace; font-size: 20px; color: #e8e6df; display: block; margin-bottom: 8px; }
+.ix-startbtn {
+  margin-top: 16px; background: var(--brass); color: #1c1710; border: none; border-radius: 999px;
+  padding: 10px 22px; font-weight: 700; font-size: 13px;
+}
+
+/* library */
+.ix-section-title { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--brass); margin: 22px 0 8px 0; }
+.ix-section-title:first-child { margin-top: 0; }
+.ix-help { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+.ix-textarea {
+  width: 100%; min-height: 110px; background: var(--ink-2); border: 1px solid var(--rule); border-radius: 8px;
+  color: #e8e6df; padding: 10px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; resize: vertical;
+}
+.ix-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.ix-input {
+  flex: 1; min-width: 140px; background: var(--ink-2); border: 1px solid var(--rule); border-radius: 8px;
+  color: #e8e6df; padding: 9px 12px; font-size: 13px;
+}
+.ix-btn {
+  background: var(--brass); color: #1c1710; border: none; border-radius: 8px; padding: 9px 16px;
+  font-weight: 600; font-size: 13px; white-space: nowrap;
+}
+.ix-btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--rule); }
+.ix-btn.danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+.ix-msg { font-size: 12px; margin-top: 8px; padding: 8px 10px; border-radius: 6px; display: none; }
+.ix-msg.show { display: block; }
+.ix-msg.ok { background: rgba(95,130,89,.18); color: #b7d4b0; }
+.ix-msg.err { background: rgba(162,59,50,.18); color: #e8b3ae; }
+
+.ix-add-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-top: 4px; }
+.ix-decklist { margin-top: 8px; max-height: 260px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 8px; }
+.ix-deckrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+.ix-deckrow:last-child { border-bottom: none; }
+.ix-deckrow .front { font-weight: 600; flex: 1; }
+.ix-deckrow .back { color: var(--muted); flex: 1; font-size: 12px; }
+.ix-badge { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+.ix-badge.new { background: rgba(62,110,142,.25); color: #9cc4dd; }
+.ix-badge.due { background: rgba(162,59,50,.25); color: #e8b3ae; }
+.ix-badge.ok { background: rgba(95,130,89,.2); color: #b7d4b0; }
+.ix-del { background: none; border: none; color: var(--muted); font-size: 16px; line-height: 1; padding: 2px 6px; }
+.ix-del:hover { color: var(--red); }
+
+@media (max-width: 480px) {
+  .ix-drawer { grid-template-columns: repeat(3, 1fr); }
+  .ix-add-row { grid-template-columns: 1fr; }
+  .ix-face-text { font-size: 18px; }
+}
+</style>
+
+<div id="index-app">
+  <div class="ix-topbar">
+    <div class="ix-brand">INDEX <span>spaced repetition</span></div>
+    <div class="ix-tabs">
+      <button class="ix-tab active" data-tab="study">Study</button>
+      <button class="ix-tab" data-tab="library">Library</button>
+    </div>
+  </div>
+
+  <div class="ix-drawer" id="ix-stats"></div>
+
+  <div class="ix-view active" id="view-study">
+    <div id="study-empty" class="ix-empty" style="display:none;"></div>
+    <div id="study-stage" class="ix-stage" style="display:none;">
+      <div class="ix-progress-row" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;">
+        <div class="ix-progress" id="ix-progress" style="margin-bottom:0;"></div>
+        <button class="ix-btn ghost" id="btn-shuffle" style="padding:4px 12px; font-size:11px;">&#128256; Shuffle</button>
+      </div>
+      <div class="ix-card-wrap">
+        <div class="ix-card" id="ix-card">
+          <div class="ix-face ix-face-front"><div class="ix-face-text" id="ix-front-text"></div><button class="ix-speak" id="ix-speak-btn" title="Listen">&#128266;</button></div>
+          <div class="ix-face ix-face-back"><div class="ix-face-text" id="ix-back-text"></div><div class="ix-stamp" id="ix-stamp" style="display:none;">relearning</div></div>
+        </div>
+      </div>
+      <div class="ix-hint" id="ix-hint">Tap the card to flip it — or press space</div>
+      <div class="ix-grades" id="ix-grades">
+        <button class="ix-grade again" data-grade="again">Again<small id="prev-again"></small></button>
+        <button class="ix-grade hard" data-grade="hard">Hard<small id="prev-hard"></small></button>
+        <button class="ix-grade good" data-grade="good">Good<small id="prev-good"></small></button>
+        <button class="ix-grade easy" data-grade="easy">Easy<small id="prev-easy"></small></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ix-view" id="view-library">
+    <div class="ix-section-title">Study settings</div>
+    <div class="ix-row">
+      <label class="ix-input" style="display:flex; align-items:center; gap:8px; flex:none;">
+        New words per day
+        <input type="number" id="settings-new-per-day" min="1" max="500" style="width:64px; background:transparent; border:none; color:#e8e6df; font-size:13px;" />
+      </label>
+    </div>
+
+    <div class="ix-section-title">Mass word upload</div>
+    <div class="ix-help">Upload a CSV, TSV, or plain text file — two columns, term then definition. Export from Google Sheets with File → Download → .csv, or from Excel/Numbers the same way. Rows merge into your deck just like pasting does.</div>
+    <div class="ix-row">
+      <input type="file" id="ix-file" accept=".csv,.tsv,.txt" style="flex:1; color:#e8e6df; font-size:13px;" />
+      <button class="ix-btn" id="btn-import-file">Upload &amp; import</button>
+    </div>
+
+    <div class="ix-section-title">Or paste words directly</div>
+    <div class="ix-help">Paste from Google Sheets (tabs carry over automatically), or just paste plain lines like <code>词 cí - definition</code> — no reformatting needed either way. Importing only <strong>adds</strong> new words and updates ones that already match — it won't remove anything, so you can just paste new batches as you get them. To remove a card, use the × next to it in the list below.</div>
+    <div class="ix-row">
+      <button class="ix-btn ghost" id="btn-paste-clipboard">&#128203; Paste from clipboard</button>
+    </div>
+    <textarea class="ix-textarea" id="ix-paste" placeholder="脱口秀 tuō kǒu xiù - talk show&#10;汉字 (hàn zì)&#9;definition"></textarea>
+    <div class="ix-row">
+      <button class="ix-btn" id="btn-import-paste">Import pasted text</button>
+    </div>
+    <div class="ix-row">
+      <input class="ix-input" id="ix-url" placeholder="Published CSV link (optional)" />
+      <button class="ix-btn ghost" id="btn-import-url">Fetch &amp; import</button>
+    </div>
+    <div class="ix-msg" id="ix-import-msg"></div>
+
+    <div class="ix-section-title">Sync between devices</div>
+    <div class="ix-help">Download a full backup (cards + your review progress) and restore it on another copy of this app to keep devices in sync.</div>
+    <div class="ix-row">
+      <button class="ix-btn ghost" id="btn-backup">&#128190; Download full backup (.json)</button>
+      <input type="file" id="ix-restore-file" accept=".json" style="flex:1; color:#e8e6df; font-size:13px;" />
+      <button class="ix-btn ghost" id="btn-restore">Restore from backup</button>
+    </div>
+
+    <div class="ix-section-title">Deck (<span id="deck-count">0</span> cards)</div>
+    <div class="ix-decklist" id="ix-decklist"></div>
+    <div class="ix-row">
+      <button class="ix-btn danger" id="btn-reset-progress">Reset all progress</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+(function(){
+  const DAY = 24*60*60*1000;
+  let state = { deck: [], progress: {}, settings: { newPerDay: 20 } };
+  let session = { queue: [], idx: 0, flipped: false };
+
+  // ---------- sample deck ----------
+  // A starter set of HSK 1 words so first-time visitors can try the app
+  // without importing anything. Loaded only when someone clicks the button.
+  const SAMPLE_DECK = [
+    { front: '你好 (nǐ hǎo)',     back: 'hello',              tags: 'sample' },
+    { front: '谢谢 (xiè xie)',    back: 'thank you',          tags: 'sample' },
+    { front: '不客气 (bú kè qi)', back: "you're welcome",     tags: 'sample' },
+    { front: '再见 (zài jiàn)',   back: 'goodbye',            tags: 'sample' },
+    { front: '我 (wǒ)',           back: 'I, me',              tags: 'sample' },
+    { front: '你 (nǐ)',           back: 'you',                tags: 'sample' },
+    { front: '是 (shì)',          back: 'to be',              tags: 'sample' },
+    { front: '不 (bù)',           back: 'not, no',            tags: 'sample' },
+    { front: '吃 (chī)',          back: 'to eat',             tags: 'sample' },
+    { front: '喝 (hē)',           back: 'to drink',           tags: 'sample' },
+    { front: '水 (shuǐ)',         back: 'water',              tags: 'sample' },
+    { front: '茶 (chá)',          back: 'tea',                tags: 'sample' },
+    { front: '朋友 (péng you)',   back: 'friend',             tags: 'sample' },
+    { front: '老师 (lǎo shī)',    back: 'teacher',            tags: 'sample' },
+    { front: '学生 (xué sheng)',  back: 'student',            tags: 'sample' },
+    { front: '中国 (Zhōng guó)',  back: 'China',              tags: 'sample' },
+    { front: '今天 (jīn tiān)',   back: 'today',              tags: 'sample' },
+    { front: '喜欢 (xǐ huan)',    back: 'to like',            tags: 'sample' },
+    { front: '猫 (māo)',          back: 'cat',                tags: 'sample' },
+    { front: '狗 (gǒu)',          back: 'dog',                tags: 'sample' }
+  ];
+
+  const $ = sel => document.querySelector(sel);
+  const app = document.getElementById('index-app');
+
+  // ---------- storage ----------
+  async function load(){
+    try { const v = localStorage.getItem('ix_deck'); if(v) state.deck = JSON.parse(v); } catch(e){}
+    try { const v = localStorage.getItem('ix_progress'); if(v) state.progress = JSON.parse(v); } catch(e){}
+    try { const v = localStorage.getItem('ix_settings'); if(v) state.settings = Object.assign(state.settings, JSON.parse(v)); } catch(e){}
+  }
+  async function saveDeck(){ try { localStorage.setItem('ix_deck', JSON.stringify(state.deck)); } catch(e){} }
+  async function saveProgress(){ try { localStorage.setItem('ix_progress', JSON.stringify(state.progress)); } catch(e){} }
+  async function saveSettings(){ try { localStorage.setItem('ix_settings', JSON.stringify(state.settings)); } catch(e){} }
+
+  function normId(front){ return front.trim().toLowerCase(); }
+
+  // splits a front string like "汉字 (hàn zì)" into { hanzi, pinyin } for display,
+  // regardless of exactly how the term column was formatted on import
+  function parseFront(front){
+    const hanzi = (front.match(/[\u3400-\u9fff]+/g) || []).join('');
+    let pinyin = front.replace(/[\u3400-\u9fff]+/g, '').replace(/[()（）]/g, '').trim();
+    return { hanzi: hanzi || front, pinyin };
+  }
+
+  function speak(text){
+    try {
+      if (!('speechSynthesis' in window)) return;
+      const { hanzi } = parseFront(text);
+      const utter = new SpeechSynthesisUtterance(hanzi || text);
+      utter.lang = 'zh-CN';
+      utter.rate = 0.9;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utter);
+    } catch(e){}
+  }
+
+  // ---------- SM-2 (Anki-inspired) ----------
+  function schedule(prog, grade){
+    const base = prog || { ef: 2.5, interval: 0, reps: 0, lapses: 0, lastGrade: null };
+    let ef = base.ef, interval = base.interval, reps = base.reps, lapses = base.lapses;
+    let newInterval, newReps = reps, newEf = ef, newLapses = lapses;
+
+    if (grade === 'again') {
+      newReps = 0;
+      newEf = Math.max(1.3, ef - 0.2);
+      newLapses = lapses + 1;
+      newInterval = 1/(24*60); // 1 minute
+    } else if (reps === 0 && lapses > 0) {
+      // relearning a lapsed card — the "due pile" case, not a brand-new card.
+      if (grade === 'hard') {
+        newInterval = 10/(24*60); // 10 minutes
+        newReps = 0;
+      } else if (grade === 'good') {
+        if (base.lastGrade === 'again') {
+          // this Good comes right off an Again — hold at 10 minutes rather than graduating
+          newInterval = 10/(24*60);
+          newReps = 0;
+        } else {
+          // last action wasn't Again (e.g. a Hard came in between) — graduate now
+          newInterval = 1;
+          newReps = 1;
+        }
+      } else { // easy always graduates immediately, even mid-relearning
+        newInterval = 4;
+        newReps = 2;
+        newEf = ef + 0.15;
+      }
+    } else if (reps === 0) {
+      // genuinely brand-new card — mirrors Anki's short learning steps
+      if (grade === 'hard') {
+        newInterval = 10/(24*60); // 10 minutes, stays in learning
+        newReps = 0;
+      } else if (grade === 'good') {
+        newInterval = 1; // graduates to 1 day
+        newReps = 1;
+      } else { // easy
+        newInterval = 4; // graduates straight to 4 days
+        newReps = 2;
+        newEf = ef + 0.15;
+      }
+    } else {
+      newInterval = (reps === 1) ? 6 : interval * ef;
+      if (grade === 'hard') { newInterval = newInterval*0.8; newEf = Math.max(1.3, ef-0.15); }
+      else if (grade === 'easy') { newInterval = newInterval*1.3; newEf = ef+0.15; }
+      newReps = reps + 1;
+    }
+    newInterval = Math.round(newInterval*10000)/10000;
+    newEf = Math.round(newEf*100)/100;
+    const due = new Date(Date.now() + newInterval*DAY).toISOString();
+    return { ef: newEf, interval: newInterval, reps: newReps, lapses: newLapses, lastGrade: grade, due, last: new Date().toISOString() };
+  }
+
+  function fmtInterval(days){
+    const minutes = days*24*60;
+    if (minutes < 60) return Math.round(minutes)+'m';
+    if (days < 1) return Math.round(days*24)+'h';
+    if (days < 30) return Math.round(days)+'d';
+    if (days < 365) return Math.round(days/30)+'mo';
+    return Math.round(days/365)+'y';
+  }
+
+  // ---------- import parsing ----------
+  function rowsToCards(rows){
+    if (!rows.length) return [];
+    let r = rows.filter(row => row.length >= 2 && (row[0]||'').trim() && (row[1]||'').trim());
+    if (r.length && /front|term|word|question/i.test(r[0][0]) && /back|definition|answer|meaning/i.test(r[0][1])) {
+      r = r.slice(1);
+    }
+    return r.map(row => ({ front: row[0].trim(), back: row[1].trim(), tags: (row[2]||'').trim() }));
+  }
+
+  function parsePastedText(text){
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+    if (!lines.length) return [];
+    const first = lines[0];
+    let delim = '\t';
+    if (first.includes('\t')) delim = '\t';
+    else if (first.includes(',')) delim = ',';
+    else if (first.includes('|')) delim = '|';
+    else if (first.includes(' - ')) delim = ' - ';
+    const rows = lines.map(l => l.split(delim).map(c => c.trim()));
+    return rowsToCards(rows);
+  }
+
+  // handles raw lines with no consistent delimiter, like:
+  // "脱口秀 tuō kǒu xiù - talk show" or "没有问题 Méiyǒu wèntí = No problem."
+  // splits off the leading Chinese-text block as the term, then everything
+  // after the first dash/equals as the definition
+  function parseFreeform(text){
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const cards = [];
+    for (const line of lines) {
+      const m = line.match(/[A-Za-z]/);
+      if (!m) continue;
+      const hanziPart = line.slice(0, m.index).trim();
+      const rest = line.slice(m.index).trim();
+      const sep = rest.match(/[-=]\s+/);
+      if (!hanziPart || !sep) continue;
+      const pinyin = rest.slice(0, sep.index).trim();
+      const eng = rest.slice(sep.index + sep[0].length).trim();
+      if (!eng) continue;
+      cards.push({ front: hanziPart + (pinyin ? ' (' + pinyin + ')' : ''), back: eng, tags: '' });
+    }
+    return cards;
+  }
+
+  // tries strict column parsing first; if that barely matches anything,
+  // falls back to freeform line-by-line parsing
+  function smartParse(text){
+    const lineCount = text.split(/\r?\n/).filter(l => l.trim()).length;
+    const structured = parsePastedText(text);
+    if (structured.length >= lineCount * 0.6) return structured;
+    const freeform = parseFreeform(text);
+    return freeform.length > structured.length ? freeform : structured;
+  }
+
+  function mergeImport(cards){
+    let added = 0, updatedExisting = 0, dupInBatch = 0;
+    const seenThisBatch = new Set();
+    cards.forEach(c => {
+      const id = normId(c.front);
+      if (seenThisBatch.has(id)) { dupInBatch++; return; }
+      seenThisBatch.add(id);
+      const idx = state.deck.findIndex(x => x.id === id);
+      const card = { id, front: c.front, back: c.back, tags: c.tags||'' };
+      if (idx >= 0) { state.deck[idx] = card; updatedExisting++; }
+      else { state.deck.push(card); added++; }
+    });
+    saveDeck();
+    renderAll();
+    return { added, updatedExisting, dupInBatch };
+  }
+
+  function showMsg(text, ok){
+    const el = $('#ix-import-msg');
+    el.textContent = text;
+    el.className = 'ix-msg show ' + (ok ? 'ok' : 'err');
+  }
+
+  $('#btn-import-file').addEventListener('click', () => {
+    const fileInput = $('#ix-file');
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) { showMsg('Choose a file first.', false); return; }
+    showMsg('Reading file…', true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = reader.result;
+        const parsed = Papa.parse(text, { skipEmptyLines: true });
+        const cards = rowsToCards(parsed.data);
+        if (!cards.length) { showMsg('No usable rows found in that file — make sure it has a term column and a definition column.', false); return; }
+        const r = mergeImport(cards);
+        let msg = 'Added ' + r.added + ' new card' + (r.added===1?'':'s') + ' from the file.';
+        if (r.updatedExisting) msg += ' Updated ' + r.updatedExisting + ' that already existed.';
+        if (r.dupInBatch) msg += ' Skipped ' + r.dupInBatch + ' duplicate' + (r.dupInBatch===1?'':'s') + ' within the file.';
+        showMsg(msg, true);
+        fileInput.value = '';
+      } catch(e) {
+        showMsg("Couldn't read that file — try exporting it as a plain CSV and uploading again.", false);
+      }
+    };
+    reader.onerror = () => showMsg("Couldn't read that file.", false);
+    reader.readAsText(file);
+  });
+
+  $('#btn-import-paste').addEventListener('click', () => {
+    const text = $('#ix-paste').value;
+    const cards = smartParse(text);
+    if (!cards.length) { showMsg('No rows found — each line needs a term and a definition, separated by a tab, comma, or " - ".', false); return; }
+    const r = mergeImport(cards);
+    let msg = 'Added ' + r.added + ' new card' + (r.added===1?'':'s') + '.';
+    if (r.updatedExisting) msg += ' Updated ' + r.updatedExisting + ' that already existed.';
+    if (r.dupInBatch) msg += ' Skipped ' + r.dupInBatch + ' duplicate' + (r.dupInBatch===1?'':'s') + ' within the pasted text.';
+    showMsg(msg, true);
+    $('#ix-paste').value = '';
+  });
+
+  $('#btn-paste-clipboard').addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) { showMsg('Clipboard is empty.', false); return; }
+      $('#ix-paste').value = text;
+      showMsg('Pasted from clipboard — review below, then click Import.', true);
+    } catch(e) {
+      showMsg("Couldn't read your clipboard automatically — use Cmd/Ctrl+V in the box instead.", false);
+    }
+  });
+
+  async function tryFetchCsv(url){
+    // 1) direct fetch — works if the host sends permissive CORS headers
+    try {
+      const res = await fetch(url);
+      if (res.ok) return await res.text();
+    } catch(e) {}
+    // 2) fall back to a public CORS proxy — Google's publish links usually
+    //    omit CORS headers even though the content itself is public
+    const proxied = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    const res2 = await fetch(proxied);
+    if (!res2.ok) throw new Error('HTTP ' + res2.status);
+    return await res2.text();
+  }
+
+  $('#btn-import-url').addEventListener('click', async () => {
+    const url = $('#ix-url').value.trim();
+    if (!url) { showMsg('Paste a published CSV link first.', false); return; }
+    showMsg('Fetching…', true);
+    try {
+      const text = await tryFetchCsv(url);
+      const parsed = Papa.parse(text, { skipEmptyLines: true });
+      const cards = rowsToCards(parsed.data);
+      if (!cards.length) { showMsg('Fetched the page but found no usable rows. Double-check the link is a "Publish to web → CSV" link and points at the right sheet/tab.', false); return; }
+      const r = mergeImport(cards);
+      let msg = 'Added ' + r.added + ' new card' + (r.added===1?'':'s') + ' from the sheet.';
+      if (r.updatedExisting) msg += ' Updated ' + r.updatedExisting + ' that already existed.';
+      if (r.dupInBatch) msg += ' Skipped ' + r.dupInBatch + ' duplicate' + (r.dupInBatch===1?'':'s') + ' within the sheet.';
+      showMsg(msg, true);
+    } catch(e) {
+      showMsg("Couldn't fetch that link, even through a fallback proxy. Copy the cells and paste them above instead — that always works.", false);
+    }
+  });
+
+  $('#btn-backup').addEventListener('click', () => {
+    if (!state.deck.length) { showMsg('Your deck is empty — nothing to back up yet.', false); return; }
+    const backup = { deck: state.deck, progress: state.progress, settings: state.settings, exportedAt: new Date().toISOString() };
+    const text = JSON.stringify(backup, null, 2);
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'flashcards_backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showMsg('Backup downloaded — includes ' + state.deck.length + ' cards and your review progress.', true);
+  });
+
+  let restoreArmed = false;
+  $('#ix-restore-file').addEventListener('change', () => {
+    restoreArmed = false;
+    $('#btn-restore').textContent = 'Restore from backup';
+  });
+  $('#btn-restore').addEventListener('click', () => {
+    const fileInput = $('#ix-restore-file');
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) { showMsg('Choose a backup file first.', false); return; }
+    if (!restoreArmed) {
+      restoreArmed = true;
+      $('#btn-restore').textContent = 'Click again to confirm';
+      showMsg('This will replace every card and all progress currently in this deck. Click "Click again to confirm" to proceed.', false);
+      return;
+    }
+    restoreArmed = false;
+    $('#btn-restore').textContent = 'Restore from backup';
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const backup = JSON.parse(reader.result);
+        if (!backup.deck || !Array.isArray(backup.deck)) throw new Error('not a valid backup');
+        state.deck = backup.deck;
+        state.progress = backup.progress || {};
+        state.settings = Object.assign(state.settings, backup.settings || {});
+        saveDeck(); saveProgress(); saveSettings();
+        renderAll();
+        showMsg('Restored ' + state.deck.length + ' cards with progress from backup.', true);
+        fileInput.value = '';
+      } catch(e) {
+        showMsg("That doesn't look like a valid backup file.", false);
+      }
+    };
+    reader.onerror = () => showMsg("Couldn't read that file.", false);
+    reader.readAsText(file);
+  });
+
+  let resetArmed = false;
+  $('#btn-reset-progress').addEventListener('click', () => {
+    if (!resetArmed) {
+      resetArmed = true;
+      $('#btn-reset-progress').textContent = 'Click again to confirm';
+      showMsg('This will make every card new again (cards themselves are kept). Click "Click again to confirm" to proceed.', false);
+      return;
+    }
+    resetArmed = false;
+    $('#btn-reset-progress').textContent = 'Reset all progress';
+    state.progress = {}; saveProgress(); renderAll();
+  });
+
+  // ---------- library list ----------
+  function renderDeckList(){
+    const el = $('#ix-decklist');
+    $('#deck-count').textContent = state.deck.length;
+    if (!state.deck.length) { el.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:13px;">No cards yet — import some above.</div>'; return; }
+    const now = Date.now();
+    el.innerHTML = state.deck.map(c => {
+      const p = state.progress[c.id];
+      let badge = '<span class="ix-badge new">new</span>';
+      if (p) badge = new Date(p.due).getTime() <= now ? '<span class="ix-badge due">due</span>' : '<span class="ix-badge ok">' + fmtInterval((new Date(p.due)-now)/DAY) + '</span>';
+      return '<div class="ix-deckrow"><span class="front">'+escapeHtml(c.front)+'</span><span class="back">'+escapeHtml(c.back)+'</span>'+badge+
+        '<button class="ix-del" data-id="'+c.id+'" title="Delete card">&times;</button></div>';
+    }).join('');
+    el.querySelectorAll('.ix-del').forEach(btn => btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      state.deck = state.deck.filter(c => c.id !== id);
+      delete state.progress[id];
+      saveDeck(); saveProgress(); renderAll();
+    }));
+  }
+
+  function escapeHtml(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  // ---------- stats ----------
+  function computeStats(){
+    const now = Date.now();
+    let due=0, brandNew=0, learning=0, young=0, mature=0;
+    state.deck.forEach(c => {
+      const p = state.progress[c.id];
+      if (!p) { brandNew++; return; }
+      if (new Date(p.due).getTime() <= now) due++;
+      if (p.reps < 2) learning++;
+      else if (p.interval < 21) young++;
+      else mature++;
+    });
+    return { due, brandNew, learning, young, mature, total: state.deck.length };
+  }
+
+  function renderStats(){
+    const s = computeStats();
+    $('#ix-stats').innerHTML = [
+      ['Due', s.due], ['New', s.brandNew], ['Learning', s.learning], ['Young', s.young], ['Mature', s.mature]
+    ].map(([t,n]) => '<div class="ix-label"><span class="n">'+n+'</span><span class="t">'+t+'</span></div>').join('');
+  }
+
+  // ---------- study session ----------
+  const SOON_WINDOW = 15*60*1000; // 15 minutes
+  const MIN_DUE_POOL = 8; // widen the active pile if fewer than this many cards are actually due
+
+  function buildQueue(){
+    const now = Date.now();
+    let due = state.deck.filter(c => state.progress[c.id] && new Date(state.progress[c.id].due).getTime() <= now + SOON_WINDOW);
+
+    // if only a handful of cards are due, pull in the next few upcoming reviews too —
+    // otherwise a small stuck set just loops against itself with no variety in between
+    if (due.length > 0 && due.length < MIN_DUE_POOL) {
+      const dueIds = new Set(due.map(c => c.id));
+      const upcoming = state.deck
+        .filter(c => !dueIds.has(c.id) && state.progress[c.id])
+        .sort((a,b) => new Date(state.progress[a.id].due) - new Date(state.progress[b.id].due))
+        .slice(0, MIN_DUE_POOL - due.length);
+      due = due.concat(upcoming);
+    }
+
+    due.sort((a,b) => new Date(state.progress[a.id].due) - new Date(state.progress[b.id].due));
+    const freshAll = state.deck.filter(c => !state.progress[c.id]);
+    shuffleArray(freshAll);
+    const fresh = freshAll.slice(0, state.settings.newPerDay || 20);
+    return due.concat(fresh).map(c => c.id);
+  }
+
+  function buildSoonQueue(){
+    const now = Date.now();
+    const soon = state.deck.filter(c => {
+      const p = state.progress[c.id];
+      if (!p) return false;
+      const t = new Date(p.due).getTime();
+      return t > now + SOON_WINDOW && t <= now + DAY;
+    });
+    soon.sort((a,b) => new Date(state.progress[a.id].due) - new Date(state.progress[b.id].due));
+    return soon.map(c => c.id);
+  }
+
+  function shuffleArray(arr){
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function shuffleQueue(){
+    const done = session.queue.slice(0, session.idx);
+    const remaining = session.queue.slice(session.idx);
+    const dueIds = remaining.filter(id => !!state.progress[id]);
+    const newIds = remaining.filter(id => !state.progress[id]);
+    shuffleArray(dueIds);
+    shuffleArray(newIds);
+    session.queue = done.concat(dueIds, newIds);
+    renderStudy();
+  }
+
+  function startSession(){
+    session.queue = buildQueue();
+    session.idx = 0;
+    session.flipped = false;
+    session.revealed = false;
+    renderStudy();
+  }
+
+  function startSoonSession(){
+    session.queue = buildSoonQueue();
+    session.idx = 0;
+    session.flipped = false;
+    session.revealed = false;
+    renderStudy();
+  }
+
+  function currentCard(){
+    if (session.idx >= session.queue.length) return null;
+    const id = session.queue[session.idx];
+    return state.deck.find(c => c.id === id) || null;
+  }
+
+  function renderStudy(){
+    const card = currentCard();
+    const empty = $('#study-empty'), stage = $('#study-stage');
+    if (!state.deck.length) {
+      empty.style.display = 'block'; stage.style.display = 'none';
+      empty.innerHTML = '<span class="big">The box is empty</span>Add some cards in the Library tab to begin, or try it out with 20 beginner Mandarin words.' +
+        '<div><button class="ix-startbtn" id="btn-sample">Try a sample deck</button></div>';
+      $('#btn-sample').addEventListener('click', () => mergeImport(SAMPLE_DECK));
+      return;
+    }
+    if (!card) {
+      empty.style.display = 'block'; stage.style.display = 'none';
+      const soonCount = buildSoonQueue().length;
+      empty.innerHTML = '<span class="big">Drawer closed</span>No cards due right now — come back later, or start again for more practice.' +
+        '<div><button class="ix-startbtn" id="btn-restart">Study anyway</button>' +
+        (soonCount ? ' <button class="ix-startbtn" id="btn-soon" style="background:var(--blue); color:#fff; margin-left:8px;">Study ' + soonCount + ' due within a day</button>' : '') +
+        '</div>';
+      $('#btn-restart').addEventListener('click', startSession);
+      if (soonCount) $('#btn-soon').addEventListener('click', startSoonSession);
+      return;
+    }
+    empty.style.display = 'none'; stage.style.display = 'flex';
+    $('#ix-progress').textContent = (session.idx+1) + ' / ' + session.queue.length;
+    const parsed = parseFront(card.front);
+    const isMature = state.progress[card.id] && state.progress[card.id].interval >= 30;
+    $('#ix-front-text').innerHTML = '<div class="ix-hanzi">'+escapeHtml(parsed.hanzi)+'</div>' +
+      (parsed.pinyin && !isMature ? '<div class="ix-pinyin">'+escapeHtml(parsed.pinyin)+'</div>' : '');
+    $('#ix-back-text').innerHTML = escapeHtml(card.back) +
+      (isMature && parsed.pinyin ? '<div class="ix-pinyin" style="font-size:15px; opacity:.6;">'+escapeHtml(parsed.pinyin)+'</div>' : '');
+    speak(card.front);
+    const p = state.progress[card.id];
+    $('#ix-stamp').style.display = (p && p.lapses > 0 && p.reps === 0) ? 'block' : 'none';
+    $('#ix-card').classList.remove('flipped');
+    $('#ix-grades').classList.remove('show');
+    $('#ix-hint').textContent = 'Tap the card to flip it — or press space';
+    session.flipped = false;
+    session.revealed = false;
+
+    const g0 = p || { ef: 2.5, interval: 0, reps: 0, lapses: 0 };
+    ['again','hard','good','easy'].forEach(grade => {
+      const preview = schedule(g0, grade);
+      $('#prev-' + grade).textContent = ' <' + fmtInterval(preview.interval) + '>';
+    });
+  }
+
+  function flipCard(){
+    if (!currentCard()) return;
+    session.flipped = !session.flipped;
+    $('#ix-card').classList.toggle('flipped', session.flipped);
+    if (session.flipped) {
+      session.revealed = true;
+      $('#ix-grades').classList.add('show');
+      $('#ix-hint').textContent = 'Tap to flip back, or rate it below';
+    } else {
+      $('#ix-hint').textContent = 'Tap to see the answer again';
+    }
+  }
+
+  function grade(g){
+    const card = currentCard();
+    if (!card || !session.revealed) return;
+    const prev = state.progress[card.id];
+    const result = schedule(prev, g);
+    state.progress[card.id] = result;
+    saveProgress();
+    renderStats();
+
+    if (result.interval * DAY < SOON_WINDOW) {
+      const gap = Math.min(session.queue.length - session.idx - 1, 5 + Math.floor(Math.random() * 4));
+      const insertAt = Math.min(session.idx + Math.max(gap, 1), session.queue.length);
+      session.queue.splice(insertAt, 0, card.id);
+    }
+    session.idx += 1;
+    renderStudy();
+  }
+
+  $('#ix-card').addEventListener('click', flipCard);
+  $('#btn-shuffle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    shuffleQueue();
+  });
+  $('#ix-speak-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const card = currentCard();
+    if (card) speak(card.front);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!app.closest('body') || $('#view-study').classList.contains('active') === false) return;
+    if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+    if (session.revealed) {
+      if (e.key === '1') grade('again');
+      if (e.key === '2') grade('hard');
+      if (e.key === '3') grade('good');
+      if (e.key === '4') grade('easy');
+    }
+  });
+  document.querySelectorAll('.ix-grade').forEach(btn => btn.addEventListener('click', () => grade(btn.dataset.grade)));
+
+  $('#settings-new-per-day').addEventListener('change', (e) => {
+    let n = parseInt(e.target.value, 10);
+    if (isNaN(n) || n < 1) n = 1;
+    if (n > 500) n = 500;
+    e.target.value = n;
+    state.settings.newPerDay = n;
+    saveSettings();
+  });
+
+  // ---------- tabs ----------
+  document.querySelectorAll('.ix-tab').forEach(tab => tab.addEventListener('click', () => {
+    document.querySelectorAll('.ix-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.ix-view').forEach(v => v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('view-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'study') startSession();
+    if (tab.dataset.tab === 'library') renderDeckList();
+  }));
+
+  function renderAll(){ renderStats(); renderDeckList(); $('#settings-new-per-day').value = state.settings.newPerDay; startSession(); }
+
+  (async function init(){
+    await load();
+    renderAll();
+  })();
+})();
+</script>
